@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Vahan Track — Loan Recovery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EEF1ED; --surface:#FFFFFF; --surface-2:#E4E9E2; --ink:#17231D; --ink-soft:#5C6B63;
+    --line:#D6DCD3; --primary:#1B5E4A; --primary-dark:#123F32; --primary-tint:#E1EEE8;
+    --alert:#B8390E; --alert-tint:#F6E3DA; --brass:#8A6D3B; --radius-card:14px; --radius-pill:999px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;}
+  h1,h2,h3,.num,.brand,.figure{font-family:'Space Grotesk',sans-serif;}
+  button,input,select,textarea{font-family:inherit;}
+  #app{min-height:100vh; display:flex; flex-direction:column;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:16px 20px; background:var(--primary); color:#fff; position:sticky; top:0; z-index:20;}
+  .brand{font-size:19px; font-weight:700; letter-spacing:-0.01em; display:flex; align-items:center; gap:8px;}
+  .brand .mark{width:26px;height:26px;border-radius:7px;background:#fff; display:flex;align-items:center;justify-content:center; color:var(--primary); font-weight:700; font-size:14px;}
+  .who{font-size:12.5px; opacity:0.85; text-align:right; line-height:1.3;}
+  .who b{display:block; font-size:13.5px; font-weight:600; opacity:1;}
+  .shell{flex:1; display:flex; width:100%; max-width:1180px; margin:0 auto;}
+  .sidebar{display:none;}
+  .main{flex:1; padding:18px 16px 90px; width:100%;}
+  @media (min-width:900px){
+    .shell{padding-top:8px;}
+    .sidebar{display:flex; flex-direction:column; gap:4px; width:220px; padding:20px 12px; flex-shrink:0;}
+    .side-btn{display:flex; align-items:center; gap:10px; padding:11px 14px; border-radius:10px; border:none; background:transparent; color:var(--ink); font-size:14.5px; font-weight:500; text-align:left; cursor:pointer;}
+    .side-btn.active{background:var(--surface); color:var(--primary); font-weight:600; box-shadow:0 1px 0 var(--line) inset;}
+    .side-btn:hover{background:var(--surface-2);}
+    .main{padding:20px 24px 40px;}
+    .bottomnav{display:none !important;}
+  }
+  .bottomnav{position:fixed; bottom:0; left:0; right:0; z-index:20; display:flex; background:var(--surface); border-top:1px solid var(--line); padding:6px 4px calc(6px + env(safe-area-inset-bottom));}
+  .nav-btn{flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; padding:6px 2px; color:var(--ink-soft); font-size:11px; font-weight:500; cursor:pointer;}
+  .nav-btn.active{color:var(--primary); font-weight:700;}
+  .nav-btn .ic{font-size:18px; line-height:1;}
+  .card{background:var(--surface); border-radius:var(--radius-card); padding:16px; border:1px solid var(--line);}
+  .section-title{font-size:13px; color:var(--ink-soft); font-weight:600; margin:22px 0 10px;}
+  .section-title:first-child{margin-top:0;}
+  .stat-row{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:6px;}
+  .stat{background:var(--surface); border-radius:var(--radius-card); padding:14px 12px; border:1px solid var(--line);}
+  .stat .figure{font-size:24px; font-weight:700; line-height:1;}
+  .stat .lbl{font-size:11.5px; color:var(--ink-soft); margin-top:6px;}
+  .search-wrap{position:relative; margin-bottom:14px;}
+  .search-wrap input{width:100%; padding:13px 14px 13px 40px; border-radius:var(--radius-pill); border:1px solid var(--line); background:var(--surface); font-size:14.5px; color:var(--ink);}
+  .search-wrap input:focus{outline:2px solid var(--primary); outline-offset:1px;}
+  .search-wrap .sic{position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--ink-soft); font-size:15px;}
+  .cust-item{display:flex; justify-content:space-between; align-items:center; padding:13px 4px; border-bottom:1px solid var(--line); cursor:pointer;}
+  .cust-item:last-child{border-bottom:none;}
+  .cust-item:hover{background:var(--surface-2);}
+  .cust-name{font-weight:600; font-size:14.5px;}
+  .cust-sub{font-size:12.5px; color:var(--ink-soft); margin-top:2px;}
+  .cust-due{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:14.5px; text-align:right;}
+  .cust-due.due{color:var(--alert);} .cust-due.clear{color:var(--primary);}
+  .cust-due .tag{display:block; font-size:10.5px; font-weight:500; color:var(--ink-soft); margin-top:2px; font-family:'Inter';}
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:12px 18px; border-radius:var(--radius-pill); border:none; font-size:14px; font-weight:600; cursor:pointer;}
+  .btn-primary{background:var(--primary); color:#fff;}
+  .btn-primary:active{background:var(--primary-dark);}
+  .btn-ghost{background:var(--surface-2); color:var(--ink);}
+  .btn-alert{background:var(--alert); color:#fff;}
+  .btn-block{width:100%;}
+  .btn-row{display:flex; gap:10px; margin-top:14px;}
+  .field{margin-bottom:13px;}
+  .field label{display:block; font-size:12.5px; color:var(--ink-soft); margin-bottom:5px; font-weight:500;}
+  .field input, .field select, .field textarea{width:100%; padding:11px 12px; border-radius:9px; border:1px solid var(--line); background:var(--surface); font-size:14.5px; color:var(--ink);}
+  .field textarea{resize:vertical; min-height:70px;}
+  .field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--primary); outline-offset:0;}
+  .field-2col{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .profile-head{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:4px;}
+  .profile-head h2{font-size:21px; margin:0 0 3px;}
+  .profile-head .meta{font-size:13px; color:var(--ink-soft);}
+  .status-chip{padding:5px 11px; border-radius:var(--radius-pill); font-size:12px; font-weight:600; white-space:nowrap;}
+  .status-chip.due{background:var(--alert-tint); color:var(--alert);}
+  .status-chip.clear{background:var(--primary-tint); color:var(--primary);}
+  .money-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0;}
+  .money-box{background:var(--surface-2); border-radius:11px; padding:12px 14px;}
+  .money-box .figure{font-size:19px; font-weight:700;}
+  .money-box .lbl{font-size:11.5px; color:var(--ink-soft); margin-top:3px;}
+  .money-box.due .figure{color:var(--alert);} .money-box.paid .figure{color:var(--primary);}
+  .timeline{margin-top:6px;}
+  .tl-item{display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--line);}
+  .tl-item:last-child{border-bottom:none;}
+  .tl-ic{width:32px; height:32px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:15px;}
+  .tl-ic.call{background:var(--primary-tint); color:var(--primary);}
+  .tl-ic.visit{background:#EFE6D3; color:var(--brass);}
+  .tl-body{flex:1; min-width:0;}
+  .tl-top{display:flex; justify-content:space-between; gap:8px; font-size:13.5px; font-weight:600;}
+  .tl-date{font-size:11.5px; color:var(--ink-soft); font-weight:500;}
+  .tl-notes{font-size:13px; color:var(--ink-soft); margin-top:3px; line-height:1.4;}
+  .tl-loc{font-size:11.5px; color:var(--brass); margin-top:4px;}
+  .tl-photo{margin-top:8px; width:100%; max-width:220px; border-radius:9px; display:block; border:1px solid var(--line);}
+  .empty{text-align:center; padding:40px 20px; color:var(--ink-soft);}
+  .empty .big{font-size:32px; margin-bottom:8px;}
+  .empty p{font-size:13.5px; line-height:1.5; margin:6px 0 0;}
+  .modal-bg{position:fixed; inset:0; background:rgba(17,26,20,0.45); z-index:50; display:flex; align-items:flex-end; justify-content:center;}
+  @media (min-width:640px){ .modal-bg{align-items:center;} }
+  .modal{background:var(--surface); width:100%; max-width:480px; border-radius:18px 18px 0 0; padding:20px 20px calc(20px + env(safe-area-inset-bottom)); max-height:88vh; overflow-y:auto;}
+  @media (min-width:640px){ .modal{border-radius:16px;} }
+  .modal h3{margin:0 0 14px; font-size:17px;}
+  .type-toggle{display:flex; gap:8px; margin-bottom:14px;}
+  .type-toggle button{flex:1; padding:11px; border-radius:10px; border:1px solid var(--line); background:var(--surface); font-weight:600; font-size:13.5px; color:var(--ink-soft); cursor:pointer;}
+  .type-toggle button.sel{border-color:var(--primary); color:var(--primary); background:var(--primary-tint);}
+  .photo-preview{width:100%; max-width:180px; border-radius:10px; margin-top:8px; border:1px solid var(--line); display:none;}
+  .loc-row{display:flex; gap:8px;}
+  .loc-row input{flex:1;}
+  .loc-btn{flex-shrink:0; padding:0 14px; border-radius:9px; border:1px solid var(--line); background:var(--surface-2); font-size:12.5px; font-weight:600; cursor:pointer; color:var(--ink);}
+  .login-wrap{min-height:100vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(160deg,var(--primary-dark),var(--primary) 60%); padding:20px;}
+  .login-card{background:var(--surface); border-radius:20px; padding:32px 26px; width:100%; max-width:380px;}
+  .login-card .mark2{width:46px;height:46px;border-radius:12px;background:var(--primary); display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px;margin-bottom:14px;}
+  .login-card h1{font-size:22px; margin:0 0 4px;}
+  .login-card p.sub{color:var(--ink-soft); font-size:13.5px; margin:0 0 22px;}
+  .login-err{color:var(--alert); font-size:13px; margin-top:-4px; margin-bottom:12px; display:none;}
+  .toast{position:fixed; bottom:88px; left:50%; transform:translateX(-50%); z-index:60; background:var(--ink); color:#fff; padding:11px 18px; border-radius:var(--radius-pill); font-size:13.5px; font-weight:500; opacity:0; pointer-events:none; transition:opacity .25s, bottom .25s; max-width:88vw; text-align:center;}
+  @media (min-width:900px){ .toast{bottom:24px;} }
+  .toast.show{opacity:1;}
+  .staff-item{display:flex; justify-content:space-between; align-items:center; padding:12px 4px; border-bottom:1px solid var(--line);}
+  .staff-item:last-child{border-bottom:none;}
+  .staff-item .u{font-size:12px; color:var(--ink-soft);}
+  .icon-btn{background:none; border:none; color:var(--alert); font-size:12.5px; font-weight:600; cursor:pointer; padding:6px 8px;}
+  .icon-btn.mute{color:var(--ink-soft);}
+  .dropzone{border:1.5px dashed var(--line); border-radius:12px; padding:22px 16px; text-align:center; cursor:pointer; background:var(--surface-2);}
+  .dropzone.drag{border-color:var(--primary); background:var(--primary-tint);}
+  .dropzone .big{font-size:26px;}
+  .import-result{margin-top:12px; padding:12px 14px; border-radius:10px; background:var(--primary-tint); color:var(--primary-dark); font-size:13.5px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  const API = ''; // same-origin
+  let TOKEN = localStorage.getItem('vt_token') || null;
+  let USER = JSON.parse(localStorage.getItem('vt_user') || 'null');
+
+  async function api(path, opts={}){
+    const headers = opts.headers || {};
+    if(TOKEN) headers['Authorization'] = 'Bearer ' + TOKEN;
+    if(opts.body && !(opts.body instanceof FormData)){
+      headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(opts.body);
+    }
+    const res = await fetch(API + path, {...opts, headers});
+    if(res.status === 401){ logout(); throw new Error('Session expired'); }
+    let data = null;
+    try{ data = await res.json(); }catch(e){}
+    if(!res.ok) throw new Error((data && data.error) || 'Something went wrong');
+    return data;
+  }
+
+  const uidLocal = () => Math.random().toString(36).slice(2,9);
+  function fmtMoney(n){ n = Number(n)||0; return "₹" + n.toLocaleString('en-IN'); }
+  function fmtDate(iso){
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) + ' · ' + d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  }
+  function escapeHtml(s){ return String(s??'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  let toastTimer;
+  function toast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+  }
+
+  let STATE = { view:'home', activeCustomerId:null, searchQ:'', customersCache:[] };
+  const app = document.getElementById('app');
+
+  // ---------------- Login ----------------
+  function renderLogin(err){
+    app.innerHTML = `
+      <div class="login-wrap">
+        <div class="login-card">
+          <div class="mark2">VT</div>
+          <h1>Vahan Track</h1>
+          <p class="sub">HP loan collections &amp; field visit log</p>
+          <div class="field"><label>Username</label><input id="li-user" autocomplete="username" placeholder="e.g. ravi"></div>
+          <div class="field"><label>Password</label><input id="li-pass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+          <div class="login-err" id="li-err">${err?escapeHtml(err):''}</div>
+          <button class="btn btn-primary btn-block" id="li-go">Log in</button>
+        </div>
+      </div>`;
+    if(err) document.getElementById('li-err').style.display = 'block';
+    document.getElementById('li-go').onclick = doLogin;
+    document.getElementById('li-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+  }
+
+  async function doLogin(){
+    const username = document.getElementById('li-user').value.trim();
+    const password = document.getElementById('li-pass').value;
+    try{
+      const data = await api('/api/auth/login', { method:'POST', body:{ username, password } });
+      TOKEN = data.token; USER = data.user;
+      localStorage.setItem('vt_token', TOKEN);
+      localStorage.setItem('vt_user', JSON.stringify(USER));
+      STATE.view = 'home';
+      renderShell();
+    }catch(e){ renderLogin(e.message); }
+  }
+
+  function logout(){
+    TOKEN = null; USER = null;
+    localStorage.removeItem('vt_token'); localStorage.removeItem('vt_user');
+    renderLogin();
+  }
+
+  // ---------------- Shell ----------------
+  const NAV_STAFF = [ {id:'home', label:'Home', ic:'⌂'}, {id:'search', label:'Customers', ic:'⌕'}, {id:'add', label:'Add', ic:'+'} ];
+  const NAV_ADMIN_EXTRA = {id:'staffmgmt', label:'Staff', ic:'☰'};
+
+  function renderShell(){
+    const isAdmin = USER.role === 'admin';
+    const navItems = isAdmin ? [...NAV_STAFF, NAV_ADMIN_EXTRA] : NAV_STAFF;
+    app.innerHTML = `
+      <div class="topbar">
+        <div class="brand"><span class="mark">VT</span> Vahan Track</div>
+        <div class="who"><b>${escapeHtml(USER.name)}</b>${isAdmin?'Admin':'Field staff'} · <span id="logout-lnk" style="text-decoration:underline;cursor:pointer;">Log out</span></div>
+      </div>
+      <div class="shell">
+        <div class="sidebar">${navItems.map(n=>`<button class="side-btn ${STATE.view===n.id?'active':''}" data-nav="${n.id}"><span>${n.ic}</span>${n.label}</button>`).join('')}</div>
+        <div class="main" id="main"></div>
+      </div>
+      <div class="bottomnav">${navItems.map(n=>`<button class="nav-btn ${STATE.view===n.id?'active':''}" data-nav="${n.id}"><span class="ic">${n.ic}</span>${n.label}</button>`).join('')}</div>`;
+    document.getElementById('logout-lnk').onclick = logout;
+    document.querySelectorAll('[data-nav]').forEach(b=>{
+      b.onclick = ()=>{ STATE.view = b.getAttribute('data-nav'); STATE.activeCustomerId=null; renderShell(); };
+    });
+    renderMain();
+  }
+
+  function renderMain(){
+    const main = document.getElementById('main');
+    if(STATE.view==='home') return renderHome(main);
+    if(STATE.view==='search') return renderSearch(main);
+    if(STATE.view==='add') return renderAddCustomer(main);
+    if(STATE.view==='customer') return renderCustomerProfile(main);
+    if(STATE.view==='staffmgmt') return renderStaffMgmt(main);
+  }
+
+  // ---------------- Home ----------------
+  async function renderHome(main){
+    main.innerHTML = `
+      <div class="section-title">Aajche overview</div>
+      <div class="stat-row" id="stat-row"><div class="empty"><p>Loading…</p></div></div>
+      <div class="section-title">Recent activity</div>
+      <div class="card" id="recent-list"><div class="empty"><p>Loading…</p></div></div>`;
+    try{
+      const stats = await api('/api/stats');
+      document.getElementById('stat-row').outerHTML = `
+        <div class="stat-row" id="stat-row">
+          <div class="stat"><div class="figure">${stats.totalCustomers}</div><div class="lbl">Total customers</div></div>
+          <div class="stat"><div class="figure" style="color:var(--alert)">${stats.overdue}</div><div class="lbl">Overdue</div></div>
+          <div class="stat"><div class="figure" style="font-size:16px;">${fmtMoney(stats.totalDue)}</div><div class="lbl">Total baaki</div></div>
+        </div>`;
+    }catch(e){ toast(e.message); }
+
+    try{
+      const recent = await api('/api/activity/recent');
+      const el = document.getElementById('recent-list');
+      if(recent.length===0){
+        el.innerHTML = `<div class="empty"><div class="big">◷</div><p>Ajun kahi call/visit log zala nahi.</p></div>`;
+      }else{
+        el.innerHTML = `<div class="timeline">${recent.map(i=>tlItemHtml(i, i.customer_name)).join('')}</div>`;
+        el.querySelectorAll('[data-goto]').forEach(x=>{
+          x.style.cursor='pointer';
+          x.onclick = ()=>{ STATE.activeCustomerId = x.getAttribute('data-goto'); STATE.view='customer'; renderShell(); };
+        });
+      }
+    }catch(e){ toast(e.message); }
+  }
+
+  function custItemHtml(c){
+    const due = Number(c.total_due)||0;
+    return `
+      <div class="cust-item" data-open="${c.id}">
+        <div>
+          <div class="cust-name">${escapeHtml(c.name)}</div>
+          <div class="cust-sub">${escapeHtml(c.bike_model||'')} ${c.phone?'· '+escapeHtml(c.phone):''}</div>
+        </div>
+        <div class="cust-due ${due>0?'due':'clear'}">${due>0?fmtMoney(due):'Clear'}
+          ${c.next_due_date?`<span class="tag">Due ${new Date(c.next_due_date).toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</span>`:''}
+        </div>
+      </div>`;
+  }
+  function bindCustItems(container){
+    container.querySelectorAll('[data-open]').forEach(el=>{
+      el.onclick = ()=>{ STATE.activeCustomerId = el.getAttribute('data-open'); STATE.view='customer'; renderShell(); };
+    });
+  }
+  function tlItemHtml(i, custName){
+    return `
+      <div class="tl-item" ${custName?`data-goto="${i.customer_id}"`:''}>
+        <div class="tl-ic ${i.type}">${i.type==='call'?'☎':'⚑'}</div>
+        <div class="tl-body">
+          <div class="tl-top"><span>${i.type==='call'?'Call':'Visit'} — ${escapeHtml(i.staff_name)}${custName?' → '+escapeHtml(custName):''}</span></div>
+          <div class="tl-date">${fmtDate(i.date)}</div>
+          ${i.notes?`<div class="tl-notes">${escapeHtml(i.notes)}</div>`:''}
+          ${i.location?`<div class="tl-loc">📍 ${escapeHtml(i.location)}</div>`:''}
+          ${i.photo_path?`<img class="tl-photo" src="${i.photo_path}">`:''}
+        </div>
+      </div>`;
+  }
+
+  // ---------------- Search ----------------
+  let searchDebounce;
+  function renderSearch(main){
+    main.innerHTML = `
+      <div class="section-title">Customer shodha</div>
+      <div class="search-wrap"><span class="sic">⌕</span><input id="search-input" placeholder="Naav, bike model, kinva phone number..." value="${escapeHtml(STATE.searchQ)}"></div>
+      <div class="card" id="search-results"><div class="empty"><p>Loading…</p></div></div>`;
+    const input = document.getElementById('search-input');
+    input.oninput = ()=>{ STATE.searchQ = input.value; clearTimeout(searchDebounce); searchDebounce = setTimeout(load, 250); };
+    input.focus();
+    load();
+    async function load(){
+      try{
+        const q = STATE.searchQ.trim();
+        const list = await api('/api/customers' + (q ? '?q='+encodeURIComponent(q) : ''));
+        const res = document.getElementById('search-results');
+        if(list.length===0){
+          res.innerHTML = `<div class="empty"><div class="big">⌕</div><p>Kahi customer sapadla nahi.</p></div>`;
+          return;
+        }
+        res.innerHTML = list.map(custItemHtml).join('');
+        bindCustItems(res);
+      }catch(e){ toast(e.message); }
+    }
+  }
+
+  // ---------------- Add customer / Excel import ----------------
+  function renderAddCustomer(main){
+    main.innerHTML = `
+      <div class="section-title">Excel / CSV madhun bulk add kara</div>
+      <div class="card">
+        <p style="font-size:13px; color:var(--ink-soft); margin-top:0;">
+          Columns aslya pahijet: <b>Name, Bike Model, Phone, Address, Loan Amount, Total Paid, Total Due, EMI Amount, Next Due Date</b>. Column order kahihi chalel.
+        </p>
+        <div class="dropzone" id="dz">
+          <div class="big">⇪</div>
+          <div style="font-weight:600; margin-top:4px;">.xlsx / .xls / .csv file select kara</div>
+          <div style="font-size:12px; color:var(--ink-soft); margin-top:4px;">kinva ithe drag-drop kara</div>
+        </div>
+        <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none;">
+        <div id="import-result"></div>
+      </div>
+
+      <div class="section-title">Ek-ek customer add kara</div>
+      <div class="card">
+        <div class="field"><label>Customer / bike owner cha naav *</label><input id="f-name" placeholder="e.g. Rahul Deshmukh"></div>
+        <div class="field"><label>Bike model</label><input id="f-bike" placeholder="e.g. Hero Splendor+"></div>
+        <div class="field-2col">
+          <div class="field"><label>Phone number</label><input id="f-phone" placeholder="98XXXXXXXX"></div>
+          <div class="field"><label>Next EMI due date</label><input id="f-date" type="date"></div>
+        </div>
+        <div class="field"><label>Address</label><input id="f-addr" placeholder="Area, city"></div>
+        <div class="field-2col">
+          <div class="field"><label>Loan amount (total)</label><input id="f-loan" type="number" placeholder="0"></div>
+          <div class="field"><label>EMI amount</label><input id="f-emi" type="number" placeholder="0"></div>
+        </div>
+        <div class="field-2col">
+          <div class="field"><label>Kiti paise bharle (paid)</label><input id="f-paid" type="number" placeholder="0"></div>
+          <div class="field"><label>Kiti baaki (due)</label><input id="f-due" type="number" placeholder="0"></div>
+        </div>
+        <button class="btn btn-primary btn-block" id="f-save">Customer save kara</button>
+      </div>`;
+
+    const dz = document.getElementById('dz');
+    const fileInput = document.getElementById('file-input');
+    dz.onclick = ()=>fileInput.click();
+    ['dragover'].forEach(ev=>dz.addEventListener(ev, e=>{ e.preventDefault(); dz.classList.add('drag'); }));
+    ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev, e=>{ e.preventDefault(); dz.classList.remove('drag'); }));
+    dz.addEventListener('drop', e=>{ if(e.dataTransfer.files[0]) uploadExcel(e.dataTransfer.files[0]); });
+    fileInput.onchange = ()=>{ if(fileInput.files[0]) uploadExcel(fileInput.files[0]); };
+
+    async function uploadExcel(file){
+      const resultEl = document.getElementById('import-result');
+      resultEl.innerHTML = `<div class="import-result">Upload ho tay aahe…</div>`;
+      const fd = new FormData(); fd.append('file', file);
+      try{
+        const r = await api('/api/customers/import', { method:'POST', body:fd });
+        resultEl.innerHTML = `<div class="import-result">✓ ${r.added} customers add zale${r.skipped?`, ${r.skipped} rows skip zale (naav nahi)`:''}.</div>`;
+        toast('Import zala ✓');
+      }catch(e){
+        resultEl.innerHTML = `<div class="import-result" style="background:var(--alert-tint); color:var(--alert);">${escapeHtml(e.message)}</div>`;
+      }
+    }
+
+    document.getElementById('f-save').onclick = async ()=>{
+      const name = document.getElementById('f-name').value.trim();
+      if(!name){ toast('Customer cha naav takaa.'); return; }
+      try{
+        const c = await api('/api/customers', { method:'POST', body:{
+          name,
+          bikeModel: document.getElementById('f-bike').value.trim(),
+          phone: document.getElementById('f-phone').value.trim(),
+          address: document.getElementById('f-addr').value.trim(),
+          loanAmount: Number(document.getElementById('f-loan').value)||0,
+          totalPaid: Number(document.getElementById('f-paid').value)||0,
+          totalDue: Number(document.getElementById('f-due').value)||0,
+          emiAmount: Number(document.getElementById('f-emi').value)||0,
+          nextDueDate: document.getElementById('f-date').value||'',
+        }});
+        toast('Customer add zala ✓');
+        STATE.activeCustomerId = c.id; STATE.view = 'customer'; renderShell();
+      }catch(e){ toast(e.message); }
+    };
+  }
+
+  // ---------------- Customer profile ----------------
+  async function renderCustomerProfile(main){
+    main.innerHTML = `<div class="empty"><p>Loading…</p></div>`;
+    let c;
+    try{ c = await api('/api/customers/'+STATE.activeCustomerId); }
+    catch(e){ main.innerHTML = `<div class="empty"><p>Customer sapadla nahi.</p></div>`; return; }
+    const due = Number(c.total_due)||0;
+
+    main.innerHTML = `
+      <div class="card">
+        <div class="profile-head">
+          <div>
+            <h2>${escapeHtml(c.name)}</h2>
+            <div class="meta">${escapeHtml(c.bike_model||'—')}${c.phone?' · '+escapeHtml(c.phone):''}</div>
+            ${c.address?`<div class="meta">${escapeHtml(c.address)}</div>`:''}
+          </div>
+          <span class="status-chip ${due>0?'due':'clear'}">${due>0?'Baaki aahe':'Full paid'}</span>
+        </div>
+        <div class="money-grid">
+          <div class="money-box paid"><div class="figure">${fmtMoney(c.total_paid)}</div><div class="lbl">Total paid</div></div>
+          <div class="money-box due"><div class="figure">${fmtMoney(due)}</div><div class="lbl">Baaki (due)</div></div>
+          <div class="money-box"><div class="figure" style="font-size:16px;">${fmtMoney(c.loan_amount)}</div><div class="lbl">Loan amount</div></div>
+          <div class="money-box"><div class="figure" style="font-size:16px;">${fmtMoney(c.emi_amount)}</div><div class="lbl">EMI amount</div></div>
+        </div>
+        ${c.next_due_date?`<div class="meta" style="margin-top:-6px;">Next due date: <b>${new Date(c.next_due_date).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</b></div>`:''}
+        <div class="btn-row"><button class="btn btn-ghost" id="edit-money" style="flex:1;">Payment update kara</button></div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="log-call" style="flex:1;">☎ Call log kara</button>
+          <button class="btn btn-alert" id="log-visit" style="flex:1;">⚑ Visit log kara</button>
+        </div>
+      </div>
+      <div class="section-title">History — calls &amp; visits</div>
+      <div class="card" id="hist"><div class="empty"><p>Loading…</p></div></div>`;
+
+    document.getElementById('log-call').onclick = ()=>openLogModal(c, 'call');
+    document.getElementById('log-visit').onclick = ()=>openLogModal(c, 'visit');
+    document.getElementById('edit-money').onclick = ()=>openMoneyModal(c);
+
+    try{
+      const list = await api('/api/customers/'+c.id+'/interactions');
+      const hist = document.getElementById('hist');
+      hist.innerHTML = list.length===0
+        ? `<div class="empty"><div class="big">◷</div><p>Ajun call kinva visit log kela nahi.</p></div>`
+        : `<div class="timeline">${list.map(i=>tlItemHtml(i,null)).join('')}</div>`;
+    }catch(e){ toast(e.message); }
+  }
+
+  function openMoneyModal(c){
+    const bg = document.createElement('div'); bg.className = 'modal-bg';
+    bg.innerHTML = `
+      <div class="modal">
+        <h3>Payment update — ${escapeHtml(c.name)}</h3>
+        <div class="field-2col">
+          <div class="field"><label>Total paid</label><input id="m-paid" type="number" value="${c.total_paid||0}"></div>
+          <div class="field"><label>Baaki (due)</label><input id="m-due" type="number" value="${c.total_due||0}"></div>
+        </div>
+        <div class="field"><label>Next EMI due date</label><input id="m-date" type="date" value="${c.next_due_date||''}"></div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="m-cancel" style="flex:1;">Cancel</button>
+          <button class="btn btn-primary" id="m-save" style="flex:1;">Save</button>
+        </div>
+      </div>`;
+    document.body.appendChild(bg);
+    bg.onclick = (e)=>{ if(e.target===bg) bg.remove(); };
+    document.getElementById('m-cancel').onclick = ()=>bg.remove();
+    document.getElementById('m-save').onclick = async ()=>{
+      try{
+        await api('/api/customers/'+c.id, { method:'PUT', body:{
+          totalPaid: Number(document.getElementById('m-paid').value)||0,
+          totalDue: Number(document.getElementById('m-due').value)||0,
+          nextDueDate: document.getElementById('m-date').value||'',
+        }});
+        bg.remove(); toast('Payment update zala ✓'); renderMain();
+      }catch(e){ toast(e.message); }
+    };
+  }
+
+  function openLogModal(c, defaultType){
+    let type = defaultType;
+    let photoFile = null;
+    const bg = document.createElement('div'); bg.className = 'modal-bg';
+    bg.innerHTML = `
+      <div class="modal">
+        <h3>${escapeHtml(c.name)} — activity log kara</h3>
+        <div class="type-toggle">
+          <button data-t="call" class="${type==='call'?'sel':''}">☎ Call</button>
+          <button data-t="visit" class="${type==='visit'?'sel':''}">⚑ Visit</button>
+        </div>
+        <div class="field"><label>Notes</label><textarea id="lg-notes" placeholder="Kay bolna zala / kay disla..."></textarea></div>
+        <div class="field" id="loc-field" style="${type==='visit'?'':'display:none;'}">
+          <label>Location</label>
+          <div class="loc-row"><input id="lg-loc" placeholder="Area / landmark"><button type="button" class="loc-btn" id="lg-geo">📍 Current</button></div>
+        </div>
+        <div class="field" id="photo-field" style="${type==='visit'?'':'display:none;'}">
+          <label>Photo (visit cha proof)</label>
+          <input type="file" accept="image/*" capture="environment" id="lg-photo">
+          <img id="lg-photo-preview" class="photo-preview">
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="lg-cancel" style="flex:1;">Cancel</button>
+          <button class="btn btn-primary" id="lg-save" style="flex:1;">Save log</button>
+        </div>
+      </div>`;
+    document.body.appendChild(bg);
+    bg.onclick = (e)=>{ if(e.target===bg) bg.remove(); };
+    document.getElementById('lg-cancel').onclick = ()=>bg.remove();
+    bg.querySelectorAll('[data-t]').forEach(b=>{
+      b.onclick = ()=>{
+        type = b.getAttribute('data-t');
+        bg.querySelectorAll('[data-t]').forEach(x=>x.classList.toggle('sel', x===b));
+        document.getElementById('loc-field').style.display = type==='visit' ? '' : 'none';
+        document.getElementById('photo-field').style.display = type==='visit' ? '' : 'none';
+      };
+    });
+    document.getElementById('lg-geo').onclick = ()=>{
+      if(!navigator.geolocation){ toast('Location support nahi ya browser madhe.'); return; }
+      navigator.geolocation.getCurrentPosition(
+        pos=>{ document.getElementById('lg-loc').value = pos.coords.latitude.toFixed(5)+', '+pos.coords.longitude.toFixed(5); },
+        ()=> toast('Location milala nahi.')
+      );
+    };
+    document.getElementById('lg-photo').onchange = async (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      photoFile = await compressImage(file);
+      const prev = document.getElementById('lg-photo-preview');
+      prev.src = URL.createObjectURL(photoFile);
+      prev.style.display = 'block';
+    };
+    document.getElementById('lg-save').onclick = async ()=>{
+      try{
+        const fd = new FormData();
+        fd.append('type', type);
+        fd.append('notes', document.getElementById('lg-notes').value.trim());
+        fd.append('location', type==='visit' ? document.getElementById('lg-loc').value.trim() : '');
+        if(type==='visit' && photoFile) fd.append('photo', photoFile, 'visit.jpg');
+        await api('/api/customers/'+c.id+'/interactions', { method:'POST', body:fd });
+        toast((type==='call'?'Call':'Visit')+' log zala ✓');
+        bg.remove(); renderMain();
+      }catch(e){ toast(e.message); }
+    };
+  }
+
+  function compressImage(file){
+    return new Promise((resolve,reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        const img = new Image();
+        img.onload = ()=>{
+          const maxW = 900;
+          const scale = Math.min(1, maxW/img.width);
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width*scale; canvas.height = img.height*scale;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img,0,0,canvas.width,canvas.height);
+          canvas.toBlob(blob=>resolve(blob), 'image/jpeg', 0.7);
+        };
+        img.onerror = reject; img.src = reader.result;
+      };
+      reader.onerror = reject; reader.readAsDataURL(file);
+    });
+  }
+
+  // ---------------- Admin: staff management ----------------
+  async function renderStaffMgmt(main){
+    main.innerHTML = `
+      <div class="section-title">Staff manage kara</div>
+      <div class="card" id="staff-list"><div class="empty"><p>Loading…</p></div></div>
+      <div class="section-title">Nava staff add kara</div>
+      <div class="card">
+        <div class="field-2col">
+          <div class="field"><label>Naav</label><input id="s-name" placeholder="e.g. Yogesh Pol"></div>
+          <div class="field"><label>Username</label><input id="s-user" placeholder="e.g. yogesh"></div>
+        </div>
+        <div class="field"><label>Password (min 6 characters)</label><input id="s-pass" placeholder="Temporary password"></div>
+        <button class="btn btn-primary btn-block" id="s-add">Staff add kara</button>
+      </div>`;
+
+    document.getElementById('s-add').onclick = async ()=>{
+      const name = document.getElementById('s-name').value.trim();
+      const username = document.getElementById('s-user').value.trim();
+      const password = document.getElementById('s-pass').value;
+      if(!name || !username || !password){ toast('Sagle fields bhara.'); return; }
+      try{
+        await api('/api/staff', { method:'POST', body:{ name, username, password } });
+        toast('Staff add zala ✓'); renderMain();
+      }catch(e){ toast(e.message); }
+    };
+    await loadStaffList();
+
+    async function loadStaffList(){
+      try{
+        const list = await api('/api/staff');
+        const el = document.getElementById('staff-list');
+        el.innerHTML = list.map(s=>`
+          <div class="staff-item">
+            <div>
+              <div class="cust-name" style="font-size:14px;">${escapeHtml(s.name)}${s.role==='admin'?' (Admin)':''}</div>
+              <div class="u">Username: ${escapeHtml(s.username)}</div>
+            </div>
+            <div>
+              <button class="icon-btn mute" data-pw="${s.id}" data-name="${escapeHtml(s.name)}">Reset password</button>
+              ${s.role!=='admin' ? `<button class="icon-btn" data-rm="${s.id}">Remove</button>` : ''}
+            </div>
+          </div>`).join('');
+        el.querySelectorAll('[data-rm]').forEach(b=>{
+          b.onclick = async ()=>{
+            try{ await api('/api/staff/'+b.getAttribute('data-rm'), { method:'DELETE' }); toast('Staff kadhla.'); loadStaffList(); }
+            catch(e){ toast(e.message); }
+          };
+        });
+        el.querySelectorAll('[data-pw]').forEach(b=>{
+          b.onclick = async ()=>{
+            const np = prompt('Navin password (min 6 characters) — ' + b.getAttribute('data-name') + ' sathi:');
+            if(!np) return;
+            try{ await api('/api/staff/'+b.getAttribute('data-pw')+'/password', { method:'PATCH', body:{ password: np } }); toast('Password update zala ✓'); }
+            catch(e){ toast(e.message); }
+          };
+        });
+      }catch(e){ toast(e.message); }
+    }
+  }
+
+  // ---------------- Init ----------------
+  if(TOKEN && USER){ STATE.view='home'; renderShell(); }
+  else{ renderLogin(); }
+
+})();
+</script>
+</body>
+</html>
